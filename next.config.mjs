@@ -1,10 +1,3 @@
-let userConfig = undefined
-try {
-  userConfig = await import('./v0-user-next.config')
-} catch (e) {
-  // ignore error
-}
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   eslint: {
@@ -18,31 +11,32 @@ const nextConfig = {
   },
   experimental: {
     webpackBuildWorker: false,
-    parallelServerBuildTraces: false,
     parallelServerCompiles: false,
+    parallelServerBuildTraces: false,
+  },
+  webpack: (config, { isServer }) => {
+    // Add optimization settings
+    config.optimization = {
+      ...config.optimization,
+      minimize: true,
+      splitChunks: {
+        chunks: "all",
+        maxInitialRequests: 25,
+        minSize: 20000,
+      },
+    }
+
+    // Increase memory limit for webpack
+    config.performance = {
+      ...config.performance,
+      maxEntrypointSize: 512000,
+      maxAssetSize: 512000,
+      hints: false,
+    }
+
+    return config
   },
 }
 
-mergeConfig(nextConfig, userConfig)
+module.exports = nextConfig
 
-function mergeConfig(nextConfig, userConfig) {
-  if (!userConfig) {
-    return
-  }
-
-  for (const key in userConfig) {
-    if (
-      typeof nextConfig[key] === 'object' &&
-      !Array.isArray(nextConfig[key])
-    ) {
-      nextConfig[key] = {
-        ...nextConfig[key],
-        ...userConfig[key],
-      }
-    } else {
-      nextConfig[key] = userConfig[key]
-    }
-  }
-}
-
-export default nextConfig
